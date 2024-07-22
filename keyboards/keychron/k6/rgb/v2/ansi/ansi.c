@@ -15,10 +15,10 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "quantum.h"
+#include "keymap.h"
 #ifdef BLUETOOTH_ENABLE
 #    include "iton_bt.h"
 #    include "outputselect.h"
-#    include "keymap.h"
 
 uint32_t last_update_time = 0;
 
@@ -183,8 +183,8 @@ bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
         }
     }
 
-    return false;
 #endif
+    return false;
 }
 
 bool dip_switch_update_user(uint8_t index, bool active) {
@@ -196,10 +196,12 @@ bool dip_switch_update_user(uint8_t index, bool active) {
                 layer_move(WIN_BASE);
             }
             break;
+#ifdef BLUETOOTH_ENABLE
         case 0:
             // dip switch inactive in bt state
             bluetooth_dip_switch = !active;
             break;
+#endif
     }
     return true;
 }
