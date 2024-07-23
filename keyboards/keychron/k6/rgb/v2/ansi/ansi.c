@@ -15,10 +15,10 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "quantum.h"
-#include "keymap.h"
 #ifdef BLUETOOTH_ENABLE
 #    include "iton_bt.h"
 #    include "outputselect.h"
+#    include "keymap.h"
 
 uint32_t last_update_time = 0;
 
@@ -71,24 +71,24 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
             case BT_PROFILE1:
                 iton_bt_switch_profile(0);
                 bt_profile = 0;
-                break;
+                return false;
             case BT_PROFILE2:
                 iton_bt_switch_profile(1);
                 bt_profile = 1;
-                break;
+                return false;
             case BT_PROFILE3:
                 iton_bt_switch_profile(2);
                 bt_profile = 2;
-                break;
+                return false;
             case BT_PAIR:
                 iton_bt_enter_pairing();
-                break;
+                return false;
             case BT_RESET:
                 iton_bt_reset_pairing();
-                break;
+                return false;
             case BT_BATTERY:
                 iton_bt_query_battery_level();
-                break;
+                return false;
             default:
                 break;
         }
@@ -113,7 +113,7 @@ bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
 
 #ifdef BLUETOOTH_ENABLE
     if (!bluetooth_dip_switch) {
-        return false;
+        return true;
     }
 
     uint32_t current_time = timer_read();                    // Get the current time in milliseconds
@@ -184,7 +184,7 @@ bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
     }
 
 #endif
-    return false;
+    return true;
 }
 
 bool dip_switch_update_user(uint8_t index, bool active) {
@@ -195,12 +195,17 @@ bool dip_switch_update_user(uint8_t index, bool active) {
             } else {
                 layer_move(WIN_BASE);
             }
-            break;
+            return false;
 #ifdef BLUETOOTH_ENABLE
         case 0:
             // dip switch inactive in bt state
             bluetooth_dip_switch = !active;
-            break;
+            if (active) {
+                set_output(OUTPUT_USB);
+            } else {
+                set_output(OUTPUT_NONE);
+            }
+            return false;
 #endif
     }
     return true;

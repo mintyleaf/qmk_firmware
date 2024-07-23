@@ -65,6 +65,6 @@ void bluetooth_send_consumer(uint16_t usage) {
 #elif defined(BLUETOOTH_RN42)
     rn42_send_consumer(usage);
 #elif defined(BLUETOOTH_ITON_BT)
-    iton_bt_send_consumer(usage)
+    iton_bt_send_consumer(usage);
 #endif
 }

@@ -6,7 +6,8 @@
     "usb": {
         "pid": "0xFE0A",
 		"vid": "0x3434",
-		"device_version": "1.0.0"
+		"device_version": "1.0.0",
+		"max_power": 50
     },
 	"matrix_pins": {
         "cols": ["A8", "A9", "A10", "A11", "A12", "A13", "A14", "A15", "B0", "B1", "B2", "B3", "B4", "B5", "B6", "B7"],
