@@ -909,7 +909,8 @@ ifeq ($(strip $(BLUETOOTH_ENABLE)), yes)
         SRC += $(DRIVER_PATH)/bluetooth/rn42.c
     endif
 
-	ifeq ($(strip $(BLUETOOTH_DRIVER)), iton_bt)
+    ifeq ($(strip $(BLUETOOTH_DRIVER)), iton_bt)
+        SRC += $(DRIVER_PATH)/bluetooth/bluetooth.c
         SRC += $(DRIVER_PATH)/bluetooth/iton_bt.c
     endif
 endif
