@@ -199,10 +199,9 @@
 			
 		},
 		"default": {
-			"animation": "solid_color",
+			"animation": "typing_heatmap",
 			"hue": 50,
-			"sat": 200,
-			"val": 25
+			"sat": 100
 		},
 		"sleep": true,
 		"timeout": 30000

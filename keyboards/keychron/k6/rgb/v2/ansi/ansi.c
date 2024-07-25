@@ -233,6 +233,7 @@ bool dip_switch_update_user(uint8_t index, bool active) {
             if (active) {
                 set_output(OUTPUT_USB);
             } else {
+                iton_bt_init();
                 set_output(OUTPUT_NONE);
             }
             return false;
