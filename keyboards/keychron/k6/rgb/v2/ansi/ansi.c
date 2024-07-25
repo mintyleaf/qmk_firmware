@@ -15,79 +15,109 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "quantum.h"
+#include "keymap.h"
 #ifdef BLUETOOTH_ENABLE
 #    include "iton_bt.h"
 #    include "outputselect.h"
-#    include "keymap.h"
 
-uint32_t last_update_time = 0;
+static uint32_t last_update_time = 0;
 
-uint32_t ev_connected     = 0;
-uint32_t ev_connecting    = 0;
-uint32_t ev_pairing       = 0;
-uint32_t ev_disconnected  = 0;
-uint32_t ev_battery_level = 0;
+static bool     ev_connecting    = false;
+static bool     ev_pairing       = false;
+static uint32_t ev_disconnected  = 0;
+static uint32_t ev_connected     = 0;
+static uint32_t ev_battery_level = 0;
 
-uint32_t battery_level = 0;
-uint32_t bt_profile    = 0;
+static uint32_t battery_level = 0;
+static uint32_t bt_profile    = 0;
 
-bool bluetooth_dip_switch = false;
+static bool bluetooth_dip_switch = false;
 
 void iton_bt_connection_successful() {
     set_output(OUTPUT_BLUETOOTH);
-    ev_connected  = 1500;
-    ev_pairing    = 0;
-    ev_connecting = 0;
+    ev_connected  = 2500;
+    ev_pairing    = false;
+    ev_connecting = false;
 }
 
 void iton_bt_entered_pairing() {
-    ev_pairing    = 1;
+    ev_pairing    = true;
     ev_connected  = 0;
-    ev_connecting = 0;
+    ev_connecting = false;
 }
 
 void iton_bt_enters_connection_state() {
-    ev_connecting = 1;
+    ev_connecting = true;
     ev_connected  = 0;
-    ev_pairing    = 0;
+    ev_pairing    = false;
 }
 
 void iton_bt_disconnected() {
     set_output(OUTPUT_USB);
-    ev_disconnected = 1500;
+    ev_disconnected = 2500;
     ev_connected    = 0;
-    ev_pairing      = 0;
-    ev_connecting   = 0;
+    ev_pairing      = false;
+    ev_connecting   = false;
 }
 
 void iton_bt_battery_level(uint8_t level) {
     battery_level    = level;
-    ev_battery_level = 1500;
+    ev_battery_level = 2500;
 }
 
+#endif
 bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
-    if (bluetooth_dip_switch && record->event.pressed) {
+    if (record->event.pressed) {
         switch (keycode) {
+#ifdef BLUETOOTH_ENABLE
             case BT_PROFILE1:
-                iton_bt_switch_profile(0);
-                bt_profile = 0;
+                if (bluetooth_dip_switch && record->event.pressed) {
+                    iton_bt_switch_profile(0);
+                    bt_profile = 0;
+                }
                 return false;
             case BT_PROFILE2:
-                iton_bt_switch_profile(1);
-                bt_profile = 1;
+                if (bluetooth_dip_switch && record->event.pressed) {
+                    iton_bt_switch_profile(1);
+                    bt_profile = 1;
+                }
                 return false;
             case BT_PROFILE3:
-                iton_bt_switch_profile(2);
-                bt_profile = 2;
+                if (bluetooth_dip_switch && record->event.pressed) {
+                    iton_bt_switch_profile(2);
+                    bt_profile = 2;
+                }
                 return false;
             case BT_PAIR:
-                iton_bt_enter_pairing();
+                if (bluetooth_dip_switch && record->event.pressed) {
+                    iton_bt_enter_pairing();
+                }
                 return false;
             case BT_RESET:
-                iton_bt_reset_pairing();
+                if (bluetooth_dip_switch && record->event.pressed) {
+                    iton_bt_reset_pairing();
+                }
                 return false;
             case BT_BATTERY:
-                iton_bt_query_battery_level();
+                if (bluetooth_dip_switch && record->event.pressed) {
+                    ev_battery_level = 10000;
+                    iton_bt_query_battery_level();
+                }
+                return false;
+#endif
+            case KC_MISSION_CONTROL:
+                if (record->event.pressed) {
+                    host_consumer_send(0x29F);
+                } else {
+                    host_consumer_send(0);
+                }
+                return false;
+            case KC_LAUNCHPAD:
+                if (record->event.pressed) {
+                    host_consumer_send(0x2A0);
+                } else {
+                    host_consumer_send(0);
+                }
                 return false;
             default:
                 break;
@@ -95,7 +125,6 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
     }
     return process_record_user(keycode, record);
 }
-#endif
 
 bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
     uint8_t layer = get_highest_layer(layer_state);
@@ -116,70 +145,71 @@ bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
         return true;
     }
 
-    uint32_t current_time = timer_read();                    // Get the current time in milliseconds
-    uint32_t elapsed      = current_time - last_update_time; // Calculate elapsed time
-
-    // Update the last update time for the next call
+    uint32_t current_time = timer_read(); // Get the current time in milliseconds
+    uint32_t elapsed;
+    if (current_time >= last_update_time) {
+        elapsed = current_time - last_update_time;
+    } else {
+        elapsed = 1;
+    }
     last_update_time = current_time;
 
-    if (ev_connected > 0 && elapsed < ev_connected) {
+    if (ev_connected > 0) {
         uint8_t profile_index = 16 + bt_profile;
-        if ((ev_connected / 250) % 2 == 0) {
+        if ((current_time / 250) % 2 == 0) {
             rgb_matrix_set_color(profile_index, RGB_GREEN);
-        } else {
-            rgb_matrix_set_color(profile_index, RGB_OFF);
         }
-        ev_connected -= elapsed;
+        if (elapsed >= ev_connected) {
+            ev_connected = 0;
+        } else {
+            ev_connected -= elapsed;
+        }
     }
 
-    if (ev_connecting > 0) {
+    if (ev_connecting) {
         uint8_t profile_index = 16 + bt_profile;
         if ((current_time / 125) % 2 == 0) {
             rgb_matrix_set_color(profile_index, RGB_YELLOW);
-        } else {
-            rgb_matrix_set_color(profile_index, RGB_OFF);
         }
     }
 
-    if (ev_pairing > 0) {
+    if (ev_pairing) {
         uint8_t profile_index = 16 + bt_profile;
         if ((current_time / 62) % 2 == 0) {
             rgb_matrix_set_color(profile_index, RGB_BLUE);
-        } else {
-            rgb_matrix_set_color(profile_index, RGB_OFF);
         }
     }
 
-    if (ev_disconnected > 0 && elapsed < ev_disconnected) {
+    if (ev_disconnected > 0) {
         uint8_t profile_index = 16 + bt_profile;
-        if ((ev_disconnected / 250) % 2 == 0) {
+        if ((current_time / 250) % 2 == 0) {
             rgb_matrix_set_color(profile_index, RGB_RED);
-        } else {
-            rgb_matrix_set_color(profile_index, RGB_OFF);
         }
-        ev_disconnected -= elapsed;
+        if (elapsed >= ev_disconnected) {
+            ev_disconnected = 0;
+        } else {
+            ev_disconnected -= elapsed;
+        }
     }
 
-    if (ev_battery_level > 0 && elapsed < ev_battery_level) {
-        ev_battery_level -= elapsed;
-        int total_leds       = MATRIX_ROWS * MATRIX_COLS;
-        int leds_per_section = total_leds / 4;
-        int leds_to_light_up = leds_per_section * battery_level;
+    if (ev_battery_level > 0) {
+        if (battery_level == 4) {
+            rgb_matrix_set_color(49, RGB_GREEN);
+        } else if (battery_level == 3) {
+            rgb_matrix_set_color(49, RGB_YELLOW);
+        } else if (battery_level == 2) {
+            rgb_matrix_set_color(49, RGB_ORANGE);
+        } else if (battery_level == 1) {
+            rgb_matrix_set_color(49, RGB_RED);
+        } else {
+            rgb_matrix_set_color(49, RGB_WHITE);
+        }
 
-        for (int i = 0; i < total_leds; i++) {
-            if (i < leds_to_light_up && i >= led_min && i < led_max && i != NO_LED) {
-                if (battery_level == 4) {
-                    rgb_matrix_set_color(i, RGB_GREEN);
-                } else if (battery_level == 3) {
-                    rgb_matrix_set_color(i, RGB_YELLOW);
-                } else if (battery_level == 2) {
-                    rgb_matrix_set_color(i, RGB_ORANGE);
-                } else if (battery_level == 1) {
-                    rgb_matrix_set_color(i, RGB_RED);
-                } else {
-                    rgb_matrix_set_color(i, RGB_WHITE);
-                }
-            }
+        if (elapsed >= ev_battery_level) {
+            ev_battery_level = 0;
+            battery_level    = 0;
+        } else {
+            ev_battery_level -= elapsed;
         }
     }
 
@@ -209,33 +239,4 @@ bool dip_switch_update_user(uint8_t index, bool active) {
 #endif
     }
     return true;
-}
-
-bool process_record_user(uint16_t keycode, keyrecord_t *record) {
-    switch (keycode) {
-        case KC_MISSION_CONTROL:
-            if (record->event.pressed) {
-                host_consumer_send(0x29F);
-            } else {
-                host_consumer_send(0);
-            }
-            return false;
-        case KC_LAUNCHPAD:
-            if (record->event.pressed) {
-                host_consumer_send(0x2A0);
-            } else {
-                host_consumer_send(0);
-            }
-            return false;
-        default:
-            return true;
-    }
-}
-
-void keyboard_post_init_user(void) {
-    // Customise these values to desired behaviour
-    // debug_enable = true;
-    // debug_matrix   = true;
-    // debug_keyboard = true;
-    // debug_mouse=true;
 }
