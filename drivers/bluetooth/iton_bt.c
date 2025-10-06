@@ -189,6 +189,18 @@ void iton_bt_init(void) {
     spiStart(&ITON_BT_SPI_PORT, &iton_bt_spicfg);
 }
 
+void iton_bt_deinit(void) {
+    spiStop(&ITON_BT_SPI_PORT);
+
+#if defined(PAL_USE_CALLBACKS) || defined(PAL_USE_WAIT)
+    palSetLineCallback(ITON_BT_INT_LINE, NULL, NULL);
+    palDisableLineEvent(ITON_BT_INT_LINE);
+#endif
+
+    setPinInput(ITON_BT_IRQ_LINE);
+    setPinInput(ITON_BT_INT_LINE);
+}
+
 void iton_bt_send(uint8_t cmd, uint8_t *data, uint8_t len) {
     while (readPin(ITON_BT_IRQ_LINE))
         ;
