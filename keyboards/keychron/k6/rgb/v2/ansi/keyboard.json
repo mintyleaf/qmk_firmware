@@ -179,10 +179,12 @@
 				{ "matrix": [ 4, 15 ], "flags": 4, "x": 187, "y": 51 }
 			],
 			"animations": {
-				"solid_color": true
+				"solid_color": true,
+				"solid_reactive_wide": true,
+				"solid_reactive_multiwide": true
 		    },
 		"default": {
-			"animation": "solid_color",
+			"animation": "solid_reactive_multiwide",
 			"hue": 50,
 			"sat": 100
 		},
