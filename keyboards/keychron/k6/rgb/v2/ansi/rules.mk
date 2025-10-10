@@ -1,2 +1,3 @@
 BLUETOOTH_ENABLE 		= yes
 BLUETOOTH_DRIVER		= iton_bt
+ITON_BT_ENABLE_ACK      = yes

@@ -40,7 +40,7 @@ static uint32_t last_update_time = 0;
 
 #    define BT_PAIRING_BLINK_MS 62
 #    define BT_CONNECTING_BLINK_MS 125
-#    define BT_CONNECTED_DISCONNECTED_BLINK_MS 250
+#    define BT_DISCONNECTED_BLINK_MS 250
 
 #    define NUM_BATTERY_LEVELS (sizeof(BATTERY_COLOR_MAP) / sizeof(BATTERY_COLOR_MAP[0]))
 
@@ -100,7 +100,6 @@ void iton_bt_enters_connection_state() {
 }
 
 void iton_bt_disconnected() {
-    set_output(OUTPUT_NONE);
     ev_disconnected_timer = BT_DISCONNECTED_DURATION_MS;
     ev_connected_timer    = 0;
     ev_pairing_flag       = false;
@@ -194,11 +193,11 @@ bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
     if (ev_pairing_flag) {
         set_profile_led_blinking(current_time, BT_PAIRING_BLINK_MS, RGB_BLUE);
     } else if (ev_connecting_flag) {
-        set_profile_led_blinking(current_time, BT_CONNECTING_BLINK_MS, RGB_YELLOW);
+        set_profile_led_blinking(current_time, BT_CONNECTING_BLINK_MS, RGB_BLUE);
     } else if (ev_connected_timer > 0) {
-        set_profile_led_blinking(current_time, BT_CONNECTED_DISCONNECTED_BLINK_MS, RGB_GREEN);
+        rgb_matrix_set_color(BT_PROFILE_LED_START_INDEX + bt_profile, RGB_WHITE);
     } else if (ev_disconnected_timer > 0) {
-        set_profile_led_blinking(current_time, BT_CONNECTED_DISCONNECTED_BLINK_MS, RGB_RED);
+        set_profile_led_blinking(current_time, BT_DISCONNECTED_BLINK_MS, RGB_RED);
     }
 
     if (ev_connected_timer > elapsed)
